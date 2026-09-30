@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>CO2X2 v1.3</title>
+<title>CO2X2 v1.4</title>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
 :root{--bg:#f4f7fb;--card:#fff;--ink:#172033;--muted:#667085;--line:#e4e7ec;--blue:#245fc7;--blue2:#eef4ff;--green:#067647;--green2:#ecfdf3;--amber:#b54708;--red:#b42318;--shadow:0 10px 28px rgba(15,23,42,.07)}
@@ -27,7 +27,7 @@ table{width:100%;border-collapse:collapse;font-size:11px}th,td{padding:8px;borde
 </style>
 </head>
 <body>
-<header><div class="head"><div class="title">CO₂X2 <span style="font-size:14px;opacity:.8">v1.3</span></div><div class="subtitle">Menu list -aineiston CO₂-analyysi ja valittujen päivien / SETMENUjen kustannussimulaattori.</div></div></header>
+<header><div class="head"><div class="title">CO₂X2 <span style="font-size:14px;opacity:.8">v1.4</span></div><div class="subtitle">Menu list -aineiston CO₂-analyysi ja valittujen päivien / SETMENUjen kustannussimulaattori.</div></div></header>
 <main>
 <section class="card">
 <div class="loader"><label class="filebtn">Avaa MenuList Excel<input id="file" type="file" accept=".xlsx,.xls"></label><div id="status" class="status">Avaa MenuList-export. Kaikki laskenta tapahtuu selaimessa.</div></div>
@@ -39,14 +39,14 @@ table{width:100%;border-collapse:collapse;font-size:11px}th,td{padding:8px;borde
 
 <section id="co2" class="panel active"><div class="card">
 <div class="sectionTitle">CO₂ – ruokalistan päästöt</div>
-<div class="sectionIntro">CO₂ lasketaan <strong>ITEM</strong>-riveiltä, jotta INGREDIENT-rivien samoja päästöjä ei lasketa uudelleen. Poraudu päivä → SETMENU → tuote. Kattavuus perustuu <code>CO2_COVERED_WEIGHT</code> / <code>CO2_ELIGIBLE_WEIGHT</code> -kenttiin. A–E-luokitus näyttää SETMENUn CO₂-intensiteetin yhdelle ruokalista-annokselle.</div>
+<div class="sectionIntro">CO₂ lasketaan <strong>ITEM</strong>-riveiltä, jotta INGREDIENT-rivien samoja päästöjä ei lasketa uudelleen. Poraudu päivä → SETMENU → tuote. Kattavuus perustuu <code>CO2_COVERED_WEIGHT</code> / <code>CO2_ELIGIBLE_WEIGHT</code> -kenttiin. A–E-luokitus käyttää LaskiainenExtraPRO:n tavoin <strong>400 g annoskokoon normalisoitua</strong> arvoa: CO₂ ÷ katettu paino × 0,400 kg.</div>
 <div style="display:flex;justify-content:flex-end;margin-top:12px"><button id="exportCO2" class="btn primary">Vie CO₂-data Exceliin</button></div>
 <div id="co2Hero" class="hero"></div><div id="co2Days"></div>
 </div></section>
 
 <section id="calc" class="panel"><div class="card">
 <div class="sectionTitle">SETMENU-laskuri</div>
-<div class="sectionIntro">Valitse laskentaan mukaan päivät sekä ylätasolta mukaan otettavat SETMENUt. Sama SETMENU-valinta koskee kaikkia valittuja päiviä. Syötä kävijämäärä / päivä. Keskikustannus = valittujen päivien ja SETMENUjen kustannus ÷ kävijät yhteensä.</div>
+<div class="sectionIntro">Valitse laskentaan mukaan päivät sekä ylätasolta mukaan otettavat SETMENUt. Sama SETMENU-valinta koskee kaikkia valittuja päiviä. Päiväkohtainen tulos on avattavissa muodossa <strong>päivä → SETMENU → resepti/tuote</strong>. Syötä kävijämäärä / päivä. Keskikustannus = valittujen päivien ja SETMENUjen kustannus ÷ kävijät yhteensä.</div>
 <div class="planner">
 <div class="side">
 <label><div class="fieldTitle">Kävijöitä / päivä</div><input id="visitors" type="number" min="1" step="1" value="100"></label>
@@ -86,7 +86,8 @@ function buildIndexes(){
  }
 }
 
-function rating(v){let l=v<.4?'A':v<.9?'B':v<1.8?'C':v<2.6?'D':'E';return `<span class="rating ${l}">${l}</span>`}
+function carbon400(co2,coveredWeight){return coveredWeight>0?(co2/coveredWeight)*0.4:null}
+function rating(v){if(v==null||!Number.isFinite(v))return '<span class="mSub">–</span>';let l=v<.4?'A':v<.9?'B':v<1.8?'C':v<2.6?'D':'E';return `<span class="rating ${l}">${l}</span>`}
 function listRows(){return listIndex.get(activeList)||[]}
 function itemRows(){return itemIndex.get(activeList)||[]}
 function daySort(a,b){return safe(a)-safe(b)||String(a).localeCompare(String(b),'fi')}
@@ -147,7 +148,8 @@ function renderCO2(){
    let mh=[...sm.entries()].filter(([id,m])=>!q||m.name.toLowerCase().includes(q)||m.rows.some(r=>r.ITEM_NAME.toLowerCase().includes(q))).sort((a,b)=>a[1].pos-b[1].pos||a[1].name.localeCompare(b[1].name,'fi')).map(([id,m])=>{
     let c=m.rows.reduce((s,r)=>s+r.ITEM_CO2,0), cv=m.rows.reduce((s,r)=>s+r.CO2_COVERED_WEIGHT,0), el=m.rows.reduce((s,r)=>s+r.CO2_ELIGIBLE_WEIGHT,0);
     let tr=m.rows.map(r=>`<tr><td>${esc(r.ITEM_NAME)}</td><td>${esc(r.ITEM_TYPE)}</td><td class="num">${num.format(r.ITEM_CO2)} kg</td><td class="num">${r.ITEM_CO2_PER_KG?num.format(r.ITEM_CO2_PER_KG):'–'}</td><td class="num">${r.CO2_ELIGIBLE_WEIGHT?num.format(100*r.CO2_COVERED_WEIGHT/r.CO2_ELIGIBLE_WEIGHT)+' %':'–'}</td></tr>`).join('');
-    return `<div class="subblock"><button class="subbtn"><strong>${esc(m.name)}</strong><span class="num">${num.format(c)} kg CO₂e</span><span>${rating(c)}</span><span class="chev">▶</span></button><div class="subbody"><table><thead><tr><th>Tuote / resepti</th><th>Tyyppi</th><th class="num">CO₂</th><th class="num">kg CO₂e/kg</th><th class="num">Kattavuus</th></tr></thead><tbody>${tr}</tbody></table></div></div>`;
+    let c400=carbon400(c,cv);
+    return `<div class="subblock"><button class="subbtn"><strong>${esc(m.name)}</strong><span class="num">${num.format(c)} kg CO₂e · 400 g: ${c400==null?'–':num.format(c400)+' kg'}</span><span>${rating(c400)}</span><span class="chev">▶</span></button><div class="subbody"><table><thead><tr><th>Tuote / resepti</th><th>Tyyppi</th><th class="num">CO₂</th><th class="num">kg CO₂e/kg</th><th class="num">Kattavuus</th></tr></thead><tbody>${tr}</tbody></table></div></div>`;
    }).join('');
    if(q&&!mh)return '';
    return `<div class="block"><button class="headbtn"><div><strong>Päivä ${esc(d)}</strong><div class="mSub">${sm.size} SETMENUa</div></div><div class="num">${num.format(dc)} kg CO₂e · ${de?num.format(100*dv/de)+' %':'–'}</div><span class="chev">▶</span></button><div class="body">${mh}</div></div>`;
@@ -174,12 +176,41 @@ function renderPlanner(){
    let shown=[...sm.entries()]
      .filter(([id,m])=>selectedMenus.has(m.name))
      .sort((a,b)=>a[1].pos-b[1].pos||a[1].name.localeCompare(b[1].name,'fi'));
-   let picks=shown.map(([id,m])=>{
-     let c=menuCost(d,id), co=menuCO2(d,id); totalCost+=c*v; selectedCount++;
-     return `<div class="menuPick"><span>✓</span><strong>${esc(m.name)}</strong><span class="num">${euro.format(c)} / annos</span><span class="num">${num.format(co.co)} kg CO₂e / annos</span></div>`;
+
+   let dayCost=0;
+   let menus=shown.map(([id,m])=>{
+     const md=menuData(d,id), c=md.cost, co=menuCO2(d,id);
+     totalCost+=c*v; dayCost+=c*v; selectedCount++;
+     const c400=carbon400(co.co2,co.cov);
+     const recipes=md.rows.map(r=>`<tr>
+       <td>${esc(r.ITEM_NAME)}</td>
+       <td>${esc(r.ITEM_TYPE)}</td>
+       <td class="num">${euro.format(r.ITEM_COST)}</td>
+       <td class="num">${num.format(r.ITEM_CO2)} kg</td>
+       <td class="num">${r.CO2_COVERED_WEIGHT?num.format(carbon400(r.ITEM_CO2,r.CO2_COVERED_WEIGHT))+' kg':'–'}</td>
+     </tr>`).join('');
+     return `<div class="subblock">
+       <button class="subbtn calcMenuBtn" type="button">
+         <strong>${esc(m.name)}</strong>
+         <span class="num">${euro.format(c)} / annos</span>
+         <span class="num hideMob">${num.format(co.co2)} kg CO₂e · 400 g ${c400==null?'–':num.format(c400)+' kg'} ${rating(c400)}</span>
+         <span class="chev">▶</span>
+       </button>
+       <div class="subbody">
+         <table><thead><tr><th>Resepti / tuote</th><th>Tyyppi</th><th class="num">Kustannus / annos</th><th class="num">CO₂</th><th class="num">CO₂ / 400 g</th></tr></thead><tbody>${recipes}</tbody></table>
+       </div>
+     </div>`;
    }).join('');
-   return `<div class="dayCard"><div class="dayTitle"><span>Päivä ${esc(d)}</span><span>${shown.length} valittua SETMENUa</span></div>${picks||'<div class="sectionIntro">Ei valittuja SETMENUja tälle päivälle.</div>'}</div>`;
+
+   return `<div class="block calcDay">
+     <button class="headbtn calcDayBtn" type="button">
+       <div><strong>Päivä ${esc(d)}</strong><div class="mSub">${shown.length} valittua SETMENUa · ${num.format(v)} kävijää</div></div>
+       <div class="num">${euro.format(dayCost)}</div><span class="chev">▶</span>
+     </button>
+     <div class="body">${menus||'<div class="sectionIntro">Ei valittuja SETMENUja tälle päivälle.</div>'}</div>
+   </div>`;
  }).join('');
+
  $('#menuDays').innerHTML=html||'<div class="sectionIntro">Valitse vähintään yksi päivä.</div>';
  let avg=totalVisitors?totalCost/totalVisitors:0;
  $('#calcHero').innerHTML=[
@@ -188,6 +219,9 @@ function renderPlanner(){
   ['Kustannus yhteensä',euro.format(totalCost),`${num.format(v)} kävijää / päivä`],
   ['Keskikustannus',totalVisitors?euro.format(avg):'–','kustannus ÷ kävijät yhteensä']
  ].map(x=>`<div class="metric"><div class="mKey">${x[0]}</div><div class="mVal">${x[1]}</div><div class="mSub">${x[2]}</div></div>`).join('');
+
+ $$('#menuDays .calcDayBtn').forEach(b=>b.onclick=()=>b.parentElement.classList.toggle('open'));
+ $$('#menuDays .calcMenuBtn').forEach(b=>b.onclick=e=>{e.stopPropagation();b.parentElement.classList.toggle('open')});
 }
 $('#visitors').oninput=renderPlanner;
 $('#daysAll').onclick=()=>{[...new Set(listRows().map(r=>r.LIST_DAY_NO))].forEach(d=>selectedDays.add(d));renderPlanner()};
@@ -210,6 +244,8 @@ $('#exportCO2').onclick=()=>{
   'CO2 katettu paino kg':r.CO2_COVERED_WEIGHT,
   'CO2 kelvollinen paino kg':r.CO2_ELIGIBLE_WEIGHT,
   'Kattavuus %':r.CO2_ELIGIBLE_WEIGHT?100*r.CO2_COVERED_WEIGHT/r.CO2_ELIGIBLE_WEIGHT:0,
+  'CO2 400g kg CO2e':carbon400(r.ITEM_CO2,r.CO2_COVERED_WEIGHT),
+  'CO2 luokka 400g':(()=>{let v=carbon400(r.ITEM_CO2,r.CO2_COVERED_WEIGHT);return v==null?'':v<.4?'A':v<.9?'B':v<1.8?'C':v<2.6?'D':'E'})(),
   'Annoskustannus EUR':r.ITEM_COST
  }));
  const ws=XLSX.utils.json_to_sheet(out);
