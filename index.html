@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="fi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CO2X2 v1.3</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+:root{--bg:#f4f7fb;--card:#fff;--ink:#172033;--muted:#667085;--line:#e4e7ec;--blue:#245fc7;--blue2:#eef4ff;--green:#067647;--green2:#ecfdf3;--amber:#b54708;--red:#b42318;--shadow:0 10px 28px rgba(15,23,42,.07)}
+*{box-sizing:border-box}body{margin:0;font-family:Inter,Segoe UI,Arial,sans-serif;background:linear-gradient(#f8fafc,#eef3f8);color:var(--ink)}
+header{padding:30px 26px 62px;background:linear-gradient(125deg,#102755,#1f5ea6 58%,#397a62);color:#fff}
+.head{max-width:1500px;margin:auto}.title{font-size:34px;font-weight:950}.subtitle{margin-top:7px;color:#eaf2ff;max-width:1000px;font-size:13px;line-height:1.55}
+main{max-width:1500px;margin:-35px auto 0;padding:0 18px 40px}.card{background:#fff;border:1px solid var(--line);border-radius:17px;padding:17px;box-shadow:var(--shadow)}
+.loader{display:flex;align-items:center;gap:12px;flex-wrap:wrap}.filebtn{background:var(--blue);color:#fff;border-radius:10px;padding:10px 15px;font-weight:850;cursor:pointer}.filebtn input{display:none}
+.status{font-size:12px;color:var(--muted);flex:1}.tabs{display:flex;gap:7px;flex-wrap:wrap;margin:14px 0}.tab,.btn{border:1px solid #d0d5dd;background:#fff;border-radius:9px;padding:9px 12px;font-weight:800;cursor:pointer;color:#344054}.tab.active,.btn.primary{background:var(--blue);border-color:var(--blue);color:#fff}
+.panel{display:none}.panel.active{display:block}.sectionTitle{font-size:19px;font-weight:900}.sectionIntro{margin-top:7px;padding:10px 12px;border:1px solid var(--line);border-radius:11px;background:#f8fafc;color:var(--muted);font-size:12px;line-height:1.55}
+.filters{display:grid;grid-template-columns:1.3fr 1fr;gap:12px;margin-top:13px}.fieldTitle{font-size:10px;text-transform:uppercase;font-weight:900;letter-spacing:.05em;color:#667085;margin-bottom:5px}
+select,input[type=number],input[type=text]{width:100%;border:1px solid #d0d5dd;border-radius:9px;padding:9px;background:#fff;color:#344054}
+.hero{display:grid;grid-template-columns:repeat(4,minmax(150px,1fr));gap:10px;margin-top:13px}.metric{border:1px solid var(--line);border-radius:13px;padding:13px;background:#fff}.mKey{font-size:10px;text-transform:uppercase;color:#667085;font-weight:850}.mVal{font-size:23px;font-weight:950;margin-top:4px}.mSub{font-size:10px;color:#667085;margin-top:4px}
+.block{border:1px solid var(--line);border-radius:12px;margin-top:10px;overflow:hidden}.headbtn{width:100%;border:0;background:#f8fafc;padding:11px 13px;text-align:left;display:grid;grid-template-columns:1fr auto auto;gap:15px;align-items:center;cursor:pointer;color:#344054}.headbtn:hover{background:#f2f6fa}.body{display:none;border-top:1px solid var(--line);padding:9px}.block.open>.body{display:block}.chev{transition:.15s}.block.open>.headbtn .chev{transform:rotate(90deg)}
+.subblock{border:1px solid #eef2f6;border-radius:10px;margin:7px 0;overflow:hidden}.subbtn{width:100%;border:0;background:#fff;padding:9px 11px;text-align:left;display:grid;grid-template-columns:1fr auto auto auto;gap:12px;cursor:pointer}.subbody{display:none;padding:7px;border-top:1px solid #eef2f6}.subblock.open>.subbody{display:block}
+table{width:100%;border-collapse:collapse;font-size:11px}th,td{padding:8px;border-bottom:1px solid #eef2f6;text-align:left}th{background:#f8fafc;color:#475467}.num{text-align:right;white-space:nowrap}
+.rating{display:inline-flex;width:25px;height:25px;border-radius:50%;align-items:center;justify-content:center;font-weight:950}.A{background:#3f8f68;color:#fff}.B{background:#8fcf86}.C{background:#f2d35f}.D{background:#efa55c}.E{background:#df6b72;color:#fff}
+.planner{display:grid;grid-template-columns:310px 1fr;gap:14px;margin-top:13px}.side{border:1px solid var(--line);border-radius:13px;padding:13px;background:#f8fafc}.days{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:7px;margin-top:8px}.check{display:flex;align-items:center;gap:7px;border:1px solid #d0d5dd;border-radius:8px;padding:7px;background:#fff;font-size:11px}.menuDays{display:grid;gap:10px}.dayCard{border:1px solid var(--line);border-radius:12px;overflow:hidden}.dayTitle{padding:10px 12px;background:#f8fafc;font-weight:900;display:flex;justify-content:space-between}.menuPick{display:grid;grid-template-columns:28px 1fr auto auto;gap:10px;align-items:center;padding:9px 12px;border-top:1px solid #eef2f6;font-size:12px}.menuPick:hover{background:#fbfcfe}
+.formula{margin-top:12px;padding:11px;border-radius:10px;background:var(--blue2);color:#344054;font-size:11px;line-height:1.5}.hidden{display:none!important}
+@media(max-width:850px){.filters,.planner{grid-template-columns:1fr}.hero{grid-template-columns:1fr 1fr}.headbtn,.subbtn{grid-template-columns:1fr auto}.hideMob{display:none}.menuPick{grid-template-columns:28px 1fr}.menuPick .num{display:none}}
+</style>
+</head>
+<body>
+<header><div class="head"><div class="title">CO₂X2 <span style="font-size:14px;opacity:.8">v1.3</span></div><div class="subtitle">Menu list -aineiston CO₂-analyysi ja valittujen päivien / SETMENUjen kustannussimulaattori.</div></div></header>
+<main>
+<section class="card">
+<div class="loader"><label class="filebtn">Avaa MenuList Excel<input id="file" type="file" accept=".xlsx,.xls"></label><div id="status" class="status">Avaa MenuList-export. Kaikki laskenta tapahtuu selaimessa.</div></div>
+<div id="filters" class="filters hidden"><label><div class="fieldTitle">Ruokalista</div><select id="menuList"></select></label><label><div class="fieldTitle">Hae SETMENUa tai tuotetta</div><input id="search" type="text" placeholder="Hae nimellä…"></label></div>
+</section>
+
+<div id="app" class="hidden">
+<div class="tabs"><button class="tab active" data-tab="co2">CO₂</button><button class="tab" data-tab="calc">SETMENU-laskuri</button></div>
+
+<section id="co2" class="panel active"><div class="card">
+<div class="sectionTitle">CO₂ – ruokalistan päästöt</div>
+<div class="sectionIntro">CO₂ lasketaan <strong>ITEM</strong>-riveiltä, jotta INGREDIENT-rivien samoja päästöjä ei lasketa uudelleen. Poraudu päivä → SETMENU → tuote. Kattavuus perustuu <code>CO2_COVERED_WEIGHT</code> / <code>CO2_ELIGIBLE_WEIGHT</code> -kenttiin. A–E-luokitus näyttää SETMENUn CO₂-intensiteetin yhdelle ruokalista-annokselle.</div>
+<div style="display:flex;justify-content:flex-end;margin-top:12px"><button id="exportCO2" class="btn primary">Vie CO₂-data Exceliin</button></div>
+<div id="co2Hero" class="hero"></div><div id="co2Days"></div>
+</div></section>
+
+<section id="calc" class="panel"><div class="card">
+<div class="sectionTitle">SETMENU-laskuri</div>
+<div class="sectionIntro">Valitse laskentaan mukaan päivät sekä ylätasolta mukaan otettavat SETMENUt. Sama SETMENU-valinta koskee kaikkia valittuja päiviä. Syötä kävijämäärä / päivä. Keskikustannus = valittujen päivien ja SETMENUjen kustannus ÷ kävijät yhteensä.</div>
+<div class="planner">
+<div class="side">
+<label><div class="fieldTitle">Kävijöitä / päivä</div><input id="visitors" type="number" min="1" step="1" value="100"></label>
+<div style="margin-top:13px"><div class="fieldTitle">Päivät</div><div style="display:flex;gap:6px"><button id="daysAll" class="btn">Kaikki</button><button id="daysNone" class="btn">Ei mitään</button></div><div id="days" class="days"></div></div>
+<div style="margin-top:13px"><div class="fieldTitle">SETMENUt</div><div style="display:flex;gap:6px"><button id="menusAll" class="btn">Kaikki</button><button id="menusNone" class="btn">Ei mitään</button></div><div id="globalMenus" class="days"></div></div>
+<div class="formula"><strong>Laskentaperiaate</strong><br>SETMENU valitaan vain kerran. Valinta koskee kaikkia valittuja päiviä, joilta kyseinen SETMENU löytyy. ITEM_COST summataan ITEM-tasolta SETMENUn annoskustannukseksi.</div>
+</div>
+<div><div id="calcHero" class="hero"></div><div id="menuDays" class="menuDays"></div></div>
+</div>
+</div></section>
+</div>
+</main>
+<script>
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const num=new Intl.NumberFormat('fi-FI',{minimumFractionDigits:2,maximumFractionDigits:2});
+const euro=new Intl.NumberFormat('fi-FI',{style:'currency',currency:'EUR'});
+const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const safe=v=>{let n=Number(String(v??'').replace(',','.'));return Number.isFinite(n)?n:0};
+const norm=v=>String(v??'').trim();
+let rows=[], lists=[], activeList='', selectedDays=new Set(), selectedMenus=new Set();
+let listIndex=new Map(), itemIndex=new Map(), dayIndex=new Map(), menuIndex=new Map();
+
+function buildIndexes(){
+ listIndex=new Map(); itemIndex=new Map(); dayIndex=new Map(); menuIndex=new Map();
+ for(const r of rows){
+   if(!listIndex.has(r.MENULIST_ID)) listIndex.set(r.MENULIST_ID,[]);
+   listIndex.get(r.MENULIST_ID).push(r);
+   if(r.REPORT_LEVEL!=='ITEM') continue;
+   if(!itemIndex.has(r.MENULIST_ID)) itemIndex.set(r.MENULIST_ID,[]);
+   itemIndex.get(r.MENULIST_ID).push(r);
+   const dk=r.MENULIST_ID+'|'+r.LIST_DAY_NO;
+   if(!dayIndex.has(dk)) dayIndex.set(dk,[]);
+   dayIndex.get(dk).push(r);
+   const mk=dk+'|'+r.SETMENU_ID;
+   if(!menuIndex.has(mk)) menuIndex.set(mk,{name:r.SETMENU_NAME,pos:r.SETMENU_POSITION,rows:[],cost:0,co2:0,cov:0,elig:0});
+   const m=menuIndex.get(mk); m.rows.push(r); m.cost+=r.ITEM_COST; m.co2+=r.ITEM_CO2; m.cov+=r.CO2_COVERED_WEIGHT; m.elig+=r.CO2_ELIGIBLE_WEIGHT;
+ }
+}
+
+function rating(v){let l=v<.4?'A':v<.9?'B':v<1.8?'C':v<2.6?'D':'E';return `<span class="rating ${l}">${l}</span>`}
+function listRows(){return listIndex.get(activeList)||[]}
+function itemRows(){return itemIndex.get(activeList)||[]}
+function daySort(a,b){return safe(a)-safe(b)||String(a).localeCompare(String(b),'fi')}
+function key(r){return `${r.LIST_DAY_NO}|${r.SETMENU_ID}`}
+function menuData(day,setid){return menuIndex.get(activeList+'|'+day+'|'+setid)||{rows:[],cost:0,co2:0,cov:0,elig:0}}
+function menuCost(day,setid){return menuData(day,setid).cost}
+function menuCO2(day,setid){let m=menuData(day,setid);return {co2:m.co2,cov:m.cov,elig:m.elig}}
+
+$('#file').onchange=async e=>{
+ const f=e.target.files[0]; if(!f)return;
+ try{
+  $('#status').textContent='Luetaan Exceliä…';
+  await new Promise(requestAnimationFrame);
+  const buf=await f.arrayBuffer();
+  $('#status').textContent='Puretaan Excel-rivejä…';
+  await new Promise(requestAnimationFrame);
+  const wb=XLSX.read(buf,{type:'array'}), ws=wb.Sheets[wb.SheetNames[0]], raw=XLSX.utils.sheet_to_json(ws,{defval:'',raw:true});
+  $('#status').textContent=`Valmistellaan ${raw.length.toLocaleString('fi-FI')} riviä…`;
+  await new Promise(requestAnimationFrame);
+  const required=['MENULIST_ID','MENULIST_NAME','LIST_DAY_NO','SETMENU_ID','SETMENU_NAME','REPORT_LEVEL','ITEM_COST','ITEM_CO2'];
+  if(!raw.length||required.some(x=>!(x in raw[0])))throw new Error('Tiedosto ei vastaa MenuList-exportin rakennetta.');
+  rows=raw.map(x=>({
+   MENULIST_ID:norm(x.MENULIST_ID),MENULIST_NAME:norm(x.MENULIST_NAME),LIST_DAY_NO:norm(x.LIST_DAY_NO),
+   SETMENU_POSITION:safe(x.SETMENU_POSITION),SETMENU_ID:norm(x.SETMENU_ID),SETMENU_NAME:norm(x.SETMENU_NAME),
+   REPORT_LEVEL:norm(x.REPORT_LEVEL).toUpperCase(),ITEM_ID:norm(x.ITEM_ID),ITEM_NAME:norm(x.ITEM_NAME),ITEM_TYPE:norm(x.ITEM_TYPE),
+   ITEM_COST:safe(x.ITEM_COST),ITEM_CO2:safe(x.ITEM_CO2),ITEM_CO2_PER_KG:safe(x.ITEM_CO2_PER_KG),
+   CO2_COVERED_WEIGHT:safe(x.CO2_COVERED_WEIGHT),CO2_ELIGIBLE_WEIGHT:safe(x.CO2_ELIGIBLE_WEIGHT),
+   INGREDIENT_NAME:norm(x.INGREDIENT_NAME),INGREDIENT_MENU_WEIGHT:safe(x.INGREDIENT_MENU_WEIGHT),INGREDIENT_CO2:safe(x.INGREDIENT_CO2)
+  }));
+  buildIndexes();
+  const lm=new Map(); rows.forEach(r=>lm.set(r.MENULIST_ID,r.MENULIST_NAME||`Ruokalista ${r.MENULIST_ID}`)); lists=[...lm].map(([id,name])=>({id,name}));
+  $('#menuList').innerHTML=lists.map(x=>`<option value="${esc(x.id)}">${esc(x.name)}</option>`).join(''); activeList=lists[0]?.id||'';
+  $('#filters').classList.remove('hidden');$('#app').classList.remove('hidden');$('#status').textContent=`${raw.length.toLocaleString('fi-FI')} riviä · ${lists.length} ruokalistaa`;
+  resetSelections(); renderAll();
+ }catch(err){$('#status').textContent='Virhe: '+err.message}
+};
+$('#menuList').onchange=e=>{activeList=e.target.value;resetSelections();renderAll()};
+$('#search').oninput=renderAll;
+function resetSelections(){
+ let ds=[...new Set(listRows().map(r=>r.LIST_DAY_NO))].sort(daySort); selectedDays=new Set(ds);
+ selectedMenus=new Set([...new Set(itemRows().map(r=>r.SETMENU_NAME).filter(Boolean))]);
+}
+function renderAll(){renderCO2();renderPlanner()}
+function renderCO2(){
+ let ir=itemRows(), q=norm($('#search').value).toLowerCase();
+ let total=ir.reduce((s,r)=>s+r.ITEM_CO2,0),cov=ir.reduce((s,r)=>s+r.CO2_COVERED_WEIGHT,0),elig=ir.reduce((s,r)=>s+r.CO2_ELIGIBLE_WEIGHT,0);
+ let days=[...new Set(ir.map(r=>r.LIST_DAY_NO))].sort(daySort);
+ let menus=[...new Set(ir.map(r=>key(r)))];
+ $('#co2Hero').innerHTML=[
+  ['CO₂ / koko ruokalista',num.format(total)+' kg CO₂e',`${days.length} päivää`],
+  ['CO₂-kattavuus',elig?num.format(100*cov/elig)+' %':'–',`${num.format(cov)} / ${num.format(elig)} kg`],
+  ['SETMENUja',menus.length,'päiväkohtaiset SETMENUt'],
+  ['ITEM-rivejä',ir.length,'CO₂ summataan tältä tasolta']
+ ].map(x=>`<div class="metric"><div class="mKey">${x[0]}</div><div class="mVal">${x[1]}</div><div class="mSub">${x[2]}</div></div>`).join('');
+ $('#co2Days').innerHTML=days.map(d=>{
+   let dr=dayIndex.get(activeList+'|'+d)||[], dc=dr.reduce((s,r)=>s+r.ITEM_CO2,0), de=dr.reduce((s,r)=>s+r.CO2_ELIGIBLE_WEIGHT,0), dv=dr.reduce((s,r)=>s+r.CO2_COVERED_WEIGHT,0);
+   let sm=new Map();dr.forEach(r=>{if(!sm.has(r.SETMENU_ID))sm.set(r.SETMENU_ID,{name:r.SETMENU_NAME,pos:r.SETMENU_POSITION,rows:[]});sm.get(r.SETMENU_ID).rows.push(r)});
+   let mh=[...sm.entries()].filter(([id,m])=>!q||m.name.toLowerCase().includes(q)||m.rows.some(r=>r.ITEM_NAME.toLowerCase().includes(q))).sort((a,b)=>a[1].pos-b[1].pos||a[1].name.localeCompare(b[1].name,'fi')).map(([id,m])=>{
+    let c=m.rows.reduce((s,r)=>s+r.ITEM_CO2,0), cv=m.rows.reduce((s,r)=>s+r.CO2_COVERED_WEIGHT,0), el=m.rows.reduce((s,r)=>s+r.CO2_ELIGIBLE_WEIGHT,0);
+    let tr=m.rows.map(r=>`<tr><td>${esc(r.ITEM_NAME)}</td><td>${esc(r.ITEM_TYPE)}</td><td class="num">${num.format(r.ITEM_CO2)} kg</td><td class="num">${r.ITEM_CO2_PER_KG?num.format(r.ITEM_CO2_PER_KG):'–'}</td><td class="num">${r.CO2_ELIGIBLE_WEIGHT?num.format(100*r.CO2_COVERED_WEIGHT/r.CO2_ELIGIBLE_WEIGHT)+' %':'–'}</td></tr>`).join('');
+    return `<div class="subblock"><button class="subbtn"><strong>${esc(m.name)}</strong><span class="num">${num.format(c)} kg CO₂e</span><span>${rating(c)}</span><span class="chev">▶</span></button><div class="subbody"><table><thead><tr><th>Tuote / resepti</th><th>Tyyppi</th><th class="num">CO₂</th><th class="num">kg CO₂e/kg</th><th class="num">Kattavuus</th></tr></thead><tbody>${tr}</tbody></table></div></div>`;
+   }).join('');
+   if(q&&!mh)return '';
+   return `<div class="block"><button class="headbtn"><div><strong>Päivä ${esc(d)}</strong><div class="mSub">${sm.size} SETMENUa</div></div><div class="num">${num.format(dc)} kg CO₂e · ${de?num.format(100*dv/de)+' %':'–'}</div><span class="chev">▶</span></button><div class="body">${mh}</div></div>`;
+ }).join('');
+ $$('#co2Days .headbtn').forEach(b=>b.onclick=()=>b.parentElement.classList.toggle('open'));
+ $$('#co2Days .subbtn').forEach(b=>b.onclick=()=>b.parentElement.classList.toggle('open'));
+}
+function renderPlanner(){
+ let ir=itemRows(), days=[...new Set(ir.map(r=>r.LIST_DAY_NO))].sort(daySort);
+ const menuNames=[...new Set(ir.map(r=>r.SETMENU_NAME).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'fi'));
+
+ $('#days').innerHTML=days.map(d=>`<label class="check"><input type="checkbox" data-day="${esc(d)}" ${selectedDays.has(d)?'checked':''}> Päivä ${esc(d)}</label>`).join('');
+ $$('[data-day]').forEach(c=>c.onchange=()=>{c.checked?selectedDays.add(c.dataset.day):selectedDays.delete(c.dataset.day);renderPlanner()});
+
+ $('#globalMenus').innerHTML=menuNames.map(n=>`<label class="check"><input type="checkbox" data-global-menu="${esc(n)}" ${selectedMenus.has(n)?'checked':''}> ${esc(n)}</label>`).join('');
+ $$('[data-global-menu]').forEach(c=>c.onchange=()=>{c.checked?selectedMenus.add(c.dataset.globalMenu):selectedMenus.delete(c.dataset.globalMenu);renderPlanner()});
+
+ let v=Math.max(0,safe($('#visitors').value)), totalCost=0,totalVisitors=v*selectedDays.size, selectedCount=0;
+ let html=days.filter(d=>selectedDays.has(d)).map(d=>{
+   let sm=new Map();
+   (dayIndex.get(activeList+'|'+d)||[]).forEach(r=>{
+     if(!sm.has(r.SETMENU_ID))sm.set(r.SETMENU_ID,{name:r.SETMENU_NAME,pos:r.SETMENU_POSITION});
+   });
+   let shown=[...sm.entries()]
+     .filter(([id,m])=>selectedMenus.has(m.name))
+     .sort((a,b)=>a[1].pos-b[1].pos||a[1].name.localeCompare(b[1].name,'fi'));
+   let picks=shown.map(([id,m])=>{
+     let c=menuCost(d,id), co=menuCO2(d,id); totalCost+=c*v; selectedCount++;
+     return `<div class="menuPick"><span>✓</span><strong>${esc(m.name)}</strong><span class="num">${euro.format(c)} / annos</span><span class="num">${num.format(co.co)} kg CO₂e / annos</span></div>`;
+   }).join('');
+   return `<div class="dayCard"><div class="dayTitle"><span>Päivä ${esc(d)}</span><span>${shown.length} valittua SETMENUa</span></div>${picks||'<div class="sectionIntro">Ei valittuja SETMENUja tälle päivälle.</div>'}</div>`;
+ }).join('');
+ $('#menuDays').innerHTML=html||'<div class="sectionIntro">Valitse vähintään yksi päivä.</div>';
+ let avg=totalVisitors?totalCost/totalVisitors:0;
+ $('#calcHero').innerHTML=[
+  ['Valittuja päiviä',selectedDays.size,`${num.format(totalVisitors)} kävijää yhteensä`],
+  ['SETMENU-valintoja',selectedMenus.size,'ylätason valinta'],
+  ['Kustannus yhteensä',euro.format(totalCost),`${num.format(v)} kävijää / päivä`],
+  ['Keskikustannus',totalVisitors?euro.format(avg):'–','kustannus ÷ kävijät yhteensä']
+ ].map(x=>`<div class="metric"><div class="mKey">${x[0]}</div><div class="mVal">${x[1]}</div><div class="mSub">${x[2]}</div></div>`).join('');
+}
+$('#visitors').oninput=renderPlanner;
+$('#daysAll').onclick=()=>{[...new Set(listRows().map(r=>r.LIST_DAY_NO))].forEach(d=>selectedDays.add(d));renderPlanner()};
+$('#daysNone').onclick=()=>{selectedDays.clear();renderPlanner()};
+$('#menusAll').onclick=()=>{itemRows().forEach(r=>{if(r.SETMENU_NAME)selectedMenus.add(r.SETMENU_NAME)});renderPlanner()};
+$('#menusNone').onclick=()=>{selectedMenus.clear();renderPlanner()};
+
+$('#exportCO2').onclick=()=>{
+ const rr=itemRows();
+ if(!rr.length){alert('CO₂-dataa ei ole vietäväksi.');return}
+ const out=rr.map(r=>({
+  'Ruokalista':listRows()[0]?.MENULIST_NAME||'',
+  'Päivä':r.LIST_DAY_NO,
+  'SETMENU':r.SETMENU_NAME,
+  'SETMENU ID':r.SETMENU_ID,
+  'Tuote / resepti':r.ITEM_NAME,
+  'Tuotetyyppi':r.ITEM_TYPE,
+  'CO2 kg CO2e':r.ITEM_CO2,
+  'CO2 kg CO2e / kg':r.ITEM_CO2_PER_KG,
+  'CO2 katettu paino kg':r.CO2_COVERED_WEIGHT,
+  'CO2 kelvollinen paino kg':r.CO2_ELIGIBLE_WEIGHT,
+  'Kattavuus %':r.CO2_ELIGIBLE_WEIGHT?100*r.CO2_COVERED_WEIGHT/r.CO2_ELIGIBLE_WEIGHT:0,
+  'Annoskustannus EUR':r.ITEM_COST
+ }));
+ const ws=XLSX.utils.json_to_sheet(out);
+ const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'CO2 data');
+ XLSX.writeFile(wb,'CO2X2_CO2_data.xlsx');
+};
+$$('.tab').forEach(t=>t.onclick=()=>{$$('.tab').forEach(x=>x.classList.remove('active'));$$('.panel').forEach(x=>x.classList.remove('active'));t.classList.add('active');$('#'+t.dataset.tab).classList.add('active')});
+</script>
+</body></html>
