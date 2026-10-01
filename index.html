@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>CO2X2 v1.6</title>
+<title>CO2X2 v1.8</title>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
 <style>
@@ -28,7 +28,7 @@ table{width:100%;border-collapse:collapse;font-size:11px}th,td{padding:8px;borde
 </style>
 </head>
 <body>
-<header><div class="head"><div class="title">CO₂X2 <span style="font-size:14px;opacity:.8">v1.6</span></div><div class="subtitle">Menu list -aineiston CO₂-analyysi ja valittujen päivien / SETMENUjen kustannussimulaattori.</div></div></header>
+<header><div class="head"><div class="title">CO₂X2 <span style="font-size:14px;opacity:.8">v1.8</span></div><div class="subtitle">Menu list -aineiston CO₂-analyysi ja valittujen päivien / SETMENUjen kustannussimulaattori.</div></div></header>
 <main>
 <section class="card">
 <div class="loader"><label class="filebtn">Avaa MenuList Excel<input id="file" type="file" accept=".xlsx,.xls"></label><div id="status" class="status">Avaa MenuList-export. Kaikki laskenta tapahtuu selaimessa.</div></div>
@@ -295,72 +295,55 @@ $('#exportCO2').onclick=async()=>{
   const total400=carbon400(totalCO2,totalCov), totalClass=classLetter(total400);
   const totalCoverage=totalElig?100*totalCov/totalElig:null;
 
-  // 1 Summary
-  let ws=wb.addWorksheet('Yhteenveto',{properties:{tabColor:{argb:blue}}});
-  ws.pageSetup={orientation:'landscape',fitToPage:true,fitToWidth:1,fitToHeight:0,margins:{left:.3,right:.3,top:.5,bottom:.5,header:.2,footer:.2}};
-  title(ws,'CO₂X2 – CO₂-raportti',listName,'H');
-  ws.mergeCells('A4:B4');ws.mergeCells('C4:D4');ws.mergeCells('E4:F4');ws.mergeCells('G4:H4');
-  const cards=[
-   ['A4','CO₂ yhteensä',totalCO2,'0.00 "kg CO₂e"'],
-   ['C4','CO₂ / 400 g',total400,'0.00 "kg CO₂e"'],
-   ['E4','Kattavuus',totalCoverage,'0.0" %"'],
-   ['G4','Luokka',totalClass,'@']
-  ];
-  cards.forEach(([cell,label,val,fmt],i)=>{
-    const c=ws.getCell(cell);c.value=`${label}\n${val==null?'–':(typeof val==='number'?val:val)}`;
-    c.font={name:'Aptos',size:14,bold:true,color:{argb:i===3&&['A','E'].includes(totalClass)?white:text}};
-    c.alignment={vertical:'middle',horizontal:'center',wrapText:true};
-    c.fill={type:'pattern',pattern:'solid',fgColor:{argb:i===3?classFill(totalClass):(i===1?lightGreen:pale)}};
-    c.border={top:{style:'thin',color:{argb:line}},bottom:{style:'thin',color:{argb:line}},left:{style:'thin',color:{argb:line}},right:{style:'thin',color:{argb:line}}};
-  });
-  ws.getRow(4).height=58;
-  ws.getCell('A6').value='Luokitus 400 g annokselle';ws.getCell('A6').font={bold:true,size:12,color:{argb:navy}};
-  const scale=[['A','< 0,40'],['B','0,40–0,90'],['C','0,90–1,80'],['D','1,80–2,60'],['E','≥ 2,60']];
-  scale.forEach((x,i)=>{
-    const c=ws.getCell(7,i+1);c.value=`${x[0]}  ${x[1]}`;c.font={bold:true,color:{argb:['A','E'].includes(x[0])?white:text}};
-    c.fill={type:'pattern',pattern:'solid',fgColor:{argb:classFill(x[0])}};c.alignment={horizontal:'center'};c.border={top:{style:'thin',color:{argb:white}},bottom:{style:'thin',color:{argb:white}},left:{style:'thin',color:{argb:white}},right:{style:'thin',color:{argb:white}}};
-  });
-  ws.getCell('A9').value='Päiväkohtainen yhteenveto';ws.getCell('A9').font={bold:true,size:13,color:{argb:navy}};
-  const h=ws.addRow(['Päivä','CO₂ kg CO₂e','Katettu paino kg','Kelvollinen paino kg','Kattavuus %','CO₂ / 400 g','Luokka']);h.number=10;header(h);
-  dayAgg.forEach(d=>{
-    const r=ws.addRow([Number(d.day)||d.day,d.co2,d.cov,d.elig,d.coverage,d.c400,d.cls]);borders(r);
-    r.getCell(2).numFmt='0.00';r.getCell(3).numFmt='0.00';r.getCell(4).numFmt='0.00';r.getCell(5).numFmt='0.0" %"';r.getCell(6).numFmt='0.00';
-    const cc=r.getCell(7);cc.fill={type:'pattern',pattern:'solid',fgColor:{argb:classFill(d.cls)}};cc.font={bold:true,color:{argb:['A','E'].includes(d.cls)?white:text}};cc.alignment={horizontal:'center'};
-  });
-  fit(ws,[13,18,18,20,15,18,12,12]);ws.views=[{state:'frozen',ySplit:10,showGridLines:false}];
+  // One-sheet CO2 report. Avoid Excel outline/group metadata for maximum compatibility.
+  // Structure on the same sheet: SETMENU summary row followed immediately by its RECIPE / INVENTORY_ITEM rows.
+  ws=wb.addWorksheet('CO2 raportti',{properties:{tabColor:{argb:green}}});
+  title(ws,'CO₂X2 – CO₂-raportti',`${listName} · SETMENU-yhteenveto + RECIPE / INVENTORY_ITEM · 400 g normalisointi`,'L');
 
-  // 2 SETMENU summary
-  ws=wb.addWorksheet('SETMENU-yhteenveto',{properties:{tabColor:{argb:green}}});
-  title(ws,'SETMENU-yhteenveto',`${listName} · 400 g normalisointi`,'H');
-  let hr=ws.getRow(4);['SETMENU','Päiviä','CO₂ yhteensä','Katettu paino kg','Kattavuus %','CO₂ / 400 g','Luokka','ITEM-kustannus'].forEach((v,i)=>hr.getCell(i+1).value=v);header(hr);
-  menuAgg.forEach(m=>{
-    const r=ws.addRow([m.name,m.occurrences.size,m.co2,m.cov,m.coverage,m.c400,m.cls,m.cost]);borders(r);
-    r.getCell(3).numFmt='0.00';r.getCell(4).numFmt='0.00';r.getCell(5).numFmt='0.0" %"';r.getCell(6).numFmt='0.00';r.getCell(8).numFmt='#,##0.00 [$€-fi-FI]';
-    const cc=r.getCell(7);cc.fill={type:'pattern',pattern:'solid',fgColor:{argb:classFill(m.cls)}};cc.font={bold:true,color:{argb:['A','E'].includes(m.cls)?white:text}};cc.alignment={horizontal:'center'};
-  });
-  fit(ws,[42,10,16,18,15,16,10,18]);addFilter(ws,`A4:H${ws.rowCount}`);
-
-  // 3 Detail
-  ws=wb.addWorksheet('CO2 data',{properties:{tabColor:{argb:'7C3AED'}}});
-  title(ws,'CO₂ data',`${listName} · ITEM-tason tarkka aineisto`,'N');
-  const headers=['Ruokalista','Päivä','SETMENU','SETMENU ID','Tuote / resepti','Tuotetyyppi','CO₂ kg CO₂e','CO₂ kg CO₂e / kg','Katettu paino kg','Kelvollinen paino kg','Kattavuus %','CO₂ / 400 g','Luokka 400 g','Annoskustannus €'];
+  const headers=['Päivä','Taso','SETMENU / tuote','Tyyppi','CO₂ kg CO₂e','Katettu paino kg','Kelvollinen paino kg','Kattavuus %','CO₂ / 400 g','Eco score','CO₂ kg CO₂e / kg','Annoskustannus €'];
   hr=ws.getRow(4);headers.forEach((v,i)=>hr.getCell(i+1).value=v);header(hr);
-  rr.forEach(r=>{
-    const c400=carbon400(r.ITEM_CO2,r.CO2_COVERED_WEIGHT), cls=classLetter(c400);
-    const row=ws.addRow([listName,Number(r.LIST_DAY_NO)||r.LIST_DAY_NO,r.SETMENU_NAME,r.SETMENU_ID,r.ITEM_NAME,r.ITEM_TYPE,r.ITEM_CO2,r.ITEM_CO2_PER_KG,r.CO2_COVERED_WEIGHT,r.CO2_ELIGIBLE_WEIGHT,r.CO2_ELIGIBLE_WEIGHT?100*r.CO2_COVERED_WEIGHT/r.CO2_ELIGIBLE_WEIGHT:null,c400,cls,r.ITEM_COST]);
-    borders(row);[7,8,9,10,12].forEach(i=>row.getCell(i).numFmt='0.000');row.getCell(11).numFmt='0.0" %"';row.getCell(14).numFmt='#,##0.00 [$€-fi-FI]';
-    const cc=row.getCell(13);cc.fill={type:'pattern',pattern:'solid',fgColor:{argb:classFill(cls)}};cc.font={bold:true,color:{argb:['A','E'].includes(cls)?white:text}};cc.alignment={horizontal:'center'};
-  });
-  fit(ws,[28,9,38,13,42,18,16,18,18,20,14,16,12,18]);addFilter(ws,`A4:N${ws.rowCount}`);
 
-  // Gentle alternating bands in tabular sheets.
-  for(const sheet of [wb.getWorksheet('SETMENU-yhteenveto'),wb.getWorksheet('CO2 data')]){
-    for(let r=5;r<=sheet.rowCount;r++){
-      if(r%2===0)sheet.getRow(r).eachCell(c=>{
-        if(!c.fill||c.fill.type===undefined)c.fill={type:'pattern',pattern:'solid',fgColor:{argb:'F8FAFC'}};
+  days.forEach(day=>{
+    const dayRows=dayIndex.get(activeList+'|'+day)||[];
+    const menus=new Map();
+    dayRows.forEach(r=>{
+      const k=String(r.SETMENU_ID);
+      if(!menus.has(k))menus.set(k,{id:r.SETMENU_ID,name:r.SETMENU_NAME,pos:r.SETMENU_POSITION,rows:[]});
+      menus.get(k).rows.push(r);
+    });
+
+    [...menus.values()].sort((a,b)=>(a.pos||0)-(b.pos||0)||a.name.localeCompare(b.name,'fi')).forEach(m=>{
+      const co2=m.rows.reduce((a,r)=>a+r.ITEM_CO2,0);
+      const cov=m.rows.reduce((a,r)=>a+r.CO2_COVERED_WEIGHT,0);
+      const elig=m.rows.reduce((a,r)=>a+r.CO2_ELIGIBLE_WEIGHT,0);
+      const cost=m.rows.reduce((a,r)=>a+r.ITEM_COST,0);
+      const c400=carbon400(co2,cov), cls=classLetter(c400);
+
+      let row=ws.addRow([day,'SETMENU',m.name,'',co2,cov,elig,elig?100*cov/elig:null,c400,cls,'',cost]);
+      row.font={name:'Aptos',bold:true,color:{argb:text}};
+      row.fill={type:'pattern',pattern:'solid',fgColor:{argb:pale}};
+      row.height=23;
+      [5,6,7,9].forEach(i=>row.getCell(i).numFmt='0.000');
+      row.getCell(8).numFmt='0.0" %"'; row.getCell(12).numFmt='#,##0.00 [$€-fi-FI]';
+      let cc=row.getCell(10);cc.fill={type:'pattern',pattern:'solid',fgColor:{argb:classFill(cls)}};cc.font={bold:true,color:{argb:['A','E'].includes(cls)?white:text}};cc.alignment={horizontal:'center'};
+      borders(row);
+
+      m.rows.sort((a,b)=>(a.ITEM_TYPE||'').localeCompare(b.ITEM_TYPE||'','fi')||(a.ITEM_NAME||'').localeCompare(b.ITEM_NAME||'','fi')).forEach(r=>{
+        const ic400=carbon400(r.ITEM_CO2,r.CO2_COVERED_WEIGHT), icls=classLetter(ic400);
+        const ir=ws.addRow(['','↳ ITEM',r.ITEM_NAME,r.ITEM_TYPE,r.ITEM_CO2,r.CO2_COVERED_WEIGHT,r.CO2_ELIGIBLE_WEIGHT,r.CO2_ELIGIBLE_WEIGHT?100*r.CO2_COVERED_WEIGHT/r.CO2_ELIGIBLE_WEIGHT:null,ic400,icls,r.ITEM_CO2_PER_KG,r.ITEM_COST]);
+        [5,6,7,9,11].forEach(i=>ir.getCell(i).numFmt='0.000');
+        ir.getCell(8).numFmt='0.0" %"';ir.getCell(12).numFmt='#,##0.00 [$€-fi-FI]';
+        ir.getCell(2).font={color:{argb:muted}}; ir.getCell(3).alignment={indent:2};
+        cc=ir.getCell(10);cc.fill={type:'pattern',pattern:'solid',fgColor:{argb:classFill(icls)}};cc.font={bold:true,color:{argb:['A','E'].includes(icls)?white:text}};cc.alignment={horizontal:'center'};
+        borders(ir);
       });
-    }
-  }
+    });
+  });
+
+  fit(ws,[10,13,44,20,17,18,20,14,17,12,18,18]);
+  ws.views=[{state:'frozen',ySplit:4,showGridLines:false}];
+  ws.autoFilter={from:'A4',to:`L${ws.rowCount}`};
+  ws.pageSetup={orientation:'landscape',fitToPage:true,fitToWidth:1,fitToHeight:0,margins:{left:.3,right:.3,top:.5,bottom:.5,header:.2,footer:.2}};
 
   const buf=await wb.xlsx.writeBuffer();
   const blob=new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
